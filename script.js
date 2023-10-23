@@ -1,83 +1,70 @@
-// Fetch countries from the API
-fetch('https://d32sbion19muhj.cloudfront.net/pub/interview/countries')
-  .then(response => response.json())
-  .then(data => {
-    const countries = Array.from(data, country => ({
-      code: country.alpha2Code,
-      name: country.name
-    }));
+const fetchJson = async (url) => {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error:', error);
+    throw error;
+  }
+};
 
-    const countryDropdown = document.getElementById('country');
-    countries.forEach(country => {
-      const option = document.createElement('option');
-      option.value = country.code;
-      option.text = country.name;
-      countryDropdown.appendChild(option);
-    });
-  })
-  .catch(error => {
-    console.error('Error fetching countries:', error);
+const populateDropdown = (dropdown, data, valueKey, textKey) => {
+  dropdown.innerHTML = `<option value="">Select ${textKey}</option>`;
+  data.forEach(item => {
+    const option = document.createElement('option');
+    option.value = item[valueKey];
+    option.text = item[textKey];
+    dropdown.appendChild(option);
   });
+};
 
-// Attach an event listener to the country dropdown
-document.getElementById('country').addEventListener('change', function() {
-  const countryCode = this.value;
+const onCountryChange = async () => {
+  const countryCode = document.getElementById('country').value;
+  const stateDropdown = document.getElementById('state');
+  const cityDropdown = document.getElementById('city');
 
-  // Clear state and city dropdowns
-  document.getElementById('state').innerHTML = '<option value="">Select State</option>';
-  document.getElementById('city').innerHTML = '<option value="">Select City</option>';
+  stateDropdown.innerHTML = '<option value="">Select State</option>';
+  cityDropdown.innerHTML = '<option value="">Select City</option>';
 
   if (countryCode) {
-    // Fetch states based on the selected country
-    fetch(`https://d32sbion19muhj.cloudfront.net/pub/interview/states?country=${countryCode}`)
-      .then(response => response.json())
-      .then(data => {
-        const states = Array.from(data, state => ({
-          code: state.state_code,
-          name: state.state_name
-        }));
-
-        const stateDropdown = document.getElementById('state');
-        states.forEach(state => {
-          const option = document.createElement('option');
-          option.value = state.code;
-          option.text = state.name;
-          stateDropdown.appendChild(option);
-        });
-      })
-      .catch(error => {
-        console.error('Error fetching states:', error);
-      });
+    try {
+      const states = await fetchJson(`https://d32sbion19muhj.cloudfront.net/pub/interview/states?country=${countryCode}`);
+      populateDropdown(stateDropdown, states, 'state_code', 'state_name');
+    } catch (error) {
+      console.error('Error fetching states:', error);
+    }
   }
-});
+};
 
-// Attach an event listener to the state dropdown
-document.getElementById('state').addEventListener('change', function() {
-  const stateCode = this.value;
+const onStateChange = async () => {
+  const stateCode = document.getElementById('state').value;
+  const cityDropdown = document.getElementById('city');
 
-  // Clear city dropdown
-  document.getElementById('city').innerHTML = '<option value="">Select City</option>';
+  cityDropdown.innerHTML = '<option value="">Select City</option>';
 
   if (stateCode) {
-    // Fetch cities based on the selected state
-    fetch(`https://d32sbion19muhj.cloudfront.net/pub/interview/cities?state=${stateCode}`)
-      .then(response => response.json())
-      .then(data => {
-        const cities = Array.from(data, city => ({
-          code: city.city_code,
-          name: city.city_name
-        }));
+    try {
+      const cities = await fetchJson(`https://d32sbion19muhj.cloudfront.net/pub/interview/cities?state=${stateCode}`);
+      populateDropdown(cityDropdown, cities, 'city_code', 'city_name');
+    } catch (error) {
+      console.error('Error fetching cities:', error);
+    }
+  }
+};
 
-        const cityDropdown = document.getElementById('city');
-        cities.forEach(city => {
-          const option = document.createElement('option');
-          option.value = city.code;
-          option.text = city.name;
-          cityDropdown.appendChild(option);
-        });
-      })
-      .catch(error => {
-        console.error('Error fetching cities:', error);
-      });
+// Attach event listeners
+document.getElementById('country').addEventListener('change', onCountryChange);
+document.getElementById('state').addEventListener('change', onStateChange);
+
+// Initial population of the country dropdown
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const countries = await fetchJson('https://d32sbion19muhj.cloudfront.net/pub/interview/countries');
+    populateDropdown(document.getElementById('country'), countries, 'alpha2Code', 'name');
+  } catch (error) {
+    console.error('Error fetching countries:', error);
   }
 });
